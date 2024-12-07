@@ -8,11 +8,7 @@ import csv
 import os
 import time
 from selenium import webdriver 
-from selenium.webdriver.common.by import By # This needs to be used
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service 
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By # This needs to be used 
 
 application = Flask(__name__) # initializing a flask app
 app=application
@@ -29,11 +25,11 @@ def index():
         try:
             DRIVER_PATH = r"chromedriver.exe"
 
-            # Initialize the Chrome WebDriver
-            driver = webdriver.Chrome(service=Service(DRIVER_PATH))
-
+            # Initialize the path to the Chrome WebDriver executable using the Service class
+            driver = webdriver.Chrome(DRIVER_PATH)
             searchString = request.form['content'].replace(" ","")
 
+            # searchString = "iphone+15"
             flipkart_url = f"https://www.flipkart.com/search?q={searchString}"
 
             driver.get(flipkart_url)
@@ -60,23 +56,20 @@ def index():
             prod_html = bs(prodRes, "html.parser")
             commentboxes = prod_html.find_all('div', {'class': "RcXBOT"})
 
-            filename = searchString+".csv"
-            fw=open(filename,"w")
-            headers="Product, Customer Name, Rating, Heading, Comment \n"
-            fw.write(headers)
-
             reviews = []
 
             for commentbox in commentboxes:
                 try:
                     c = prod_html.find_all('div', {'class': "x+7QT1"})
-                    price =c[0].div.div.div.text
+                    price = price_element=c[0].div.div.div.text
+                    
                 except Exception as e:    
                     price = 'Price not found: ' + str(e)
 
                 try:
                     e=  prod_html.find_all('div', {'class': "C7fEHH"})
-                    product_name = e[0].div.text
+                    product_name = d[0].div.text
+                    
                 except Exception as e:    
                     product_name = 'Price not found: ' + str(e)
 
@@ -104,7 +97,13 @@ def index():
 
                 mydict = {"Price": price, "Product": product_name, "Customer Name": name, "Rating": rating, "Heading": commentHead, "Comment": custComment}
                 reviews.append(mydict)
+                   
+                writer.writerows(reviews)
 
+            client = ("mongodb+srv://mangeshsambare1:sambaremangesh123@cluster0.cw3cocl.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+            db = client['flipkart_scrap1']
+            review_col = db['review_scrap_data']
+            review_col.insert_many(reviews)
             return render_template('results.html', reviews=reviews[0:(len(reviews)-1)])
         except Exception as e:
             print('The Exception message is: ',e)
